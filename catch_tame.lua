@@ -1,6 +1,6 @@
 --[[
-  NEBULA | CATCH & TAME – FINAL WORKING
-  Full features with key system
+  NEBULA | CATCH & TAME – FINAL WORKING VERSION WITH KEY SYSTEM
+  Uses the working UI from the previous step (which you confirmed works).
 ]]
 
 local Players = game:GetService("Players")
@@ -10,22 +10,23 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
--- === CONFIG ===
+-- CONFIG
 local KEY_LIST_URL = "https://raw.githubusercontent.com/N0icej/neora_catchtame/main/keys.txt"
+local DISCORD_INVITE = "YOUR_DISCORD_INVITE" -- Change this
 
--- === NOTIFICATION ===
-local function notify(msg)
+-- NOTIFICATION
+local function notify(msg, duration)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Nebula",
             Text = msg,
-            Duration = 2
+            Duration = duration or 2
         })
     end)
     print("[Nebula] " .. msg)
 end
 
--- === STATE ===
+-- STATE (same as before)
 local State = {
     ESP = false,
     AutoCatch = false,
@@ -48,7 +49,7 @@ local State = {
     ESPObjects = {}
 }
 
--- === CACHE & SCAN ===
+-- ========== CACHE & SCAN (Performance) ==========
 local rootPartCache, humanoidCache, lastCacheRefresh = nil, nil, 0
 local function getRootPart()
     local now = tick()
@@ -144,7 +145,7 @@ local function teleport(part)
     if root and part then root.CFrame = part.CFrame + Vector3.new(0,5,0) end
 end
 
--- === REMOTES & ACTIONS ===
+-- ========== REMOTES & ACTIONS ==========
 local function fireRemote(pattern, ...)
     local args = {...}
     for _, r in ipairs(ReplicatedStorage:GetDescendants()) do
@@ -209,7 +210,7 @@ local function collectCash(cashItem)
     if root and cashItem:IsA("BasePart") then cashItem.CFrame = root.CFrame + Vector3.new(0,3,0) end
 end
 
--- === FLY ===
+-- ========== FLY SYSTEM ==========
 local flying = false
 local vel, gyro
 local function toggleFly()
@@ -236,7 +237,7 @@ local function toggleFly()
     end
 end
 
--- === ESP ===
+-- ========== ESP ==========
 local function clearESP()
     for _, obj in pairs(State.ESPObjects) do pcall(obj.Destroy, obj) end
     State.ESPObjects = {}
@@ -324,7 +325,7 @@ local function updateESP()
     end
 end
 
--- === MAIN LOOP ===
+-- ========== MAIN LOOP ==========
 local last = {catch=0, tame=0, farm=0, cash=0, claim=0, quest=0, sell=0, buy=0, hatch=0, train=0, esp=0}
 local function onTick()
     local now = tick()
@@ -411,8 +412,8 @@ local function onTick()
     end
 end
 
--- === FULL RAYFIELD UI (no key) ===
-local function createFullUI()
+-- ========== FULL UI (WORKING VERSION) ==========
+local function loadFullUI()
     local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
     local Window = Rayfield:CreateWindow({
         Name = "Nebula | Catch & Tame",
@@ -467,10 +468,10 @@ local function createFullUI()
     infoTab:CreateParagraph({Title = "Nebula | Catch & Tame", Content = "All-in-one automation for Catch & Tame.\n\nFeatures:\n- ESP\n- Auto Catch/Tame/Farm/Cash\n- Auto Claim/Quest/Sell/Buy/Hatch/Train\n- Speed & Jump modifiers\n- Teleports\n- Fly mode (F key)\n\nPress F to toggle flight.\nGUI can be toggled with the keybind set in Rayfield (default G)."})
 
     Rayfield:Notify({Title = "Nebula", Content = "Loaded! Press F for flight.", Duration = 3})
-    notify("Full UI loaded")
+    notify("Full UI loaded successfully")
 end
 
--- === KEY SYSTEM ===
+-- ========== KEY SYSTEM ==========
 local function checkKey(key)
     local success, data = pcall(game.HttpGet, game, KEY_LIST_URL)
     if not success or not data then return false, "Failed to fetch key list" end
@@ -515,7 +516,7 @@ local function startKeySystem()
                 end)
                 Rayfield:Notify({Title = "Success", Content = msg, Duration = 3})
                 KeyWindow:Destroy()
-                createFullUI()
+                loadFullUI()
                 RunService.Heartbeat:Connect(onTick)
             else
                 Rayfield:Notify({Title = "Error", Content = msg, Duration = 5})
@@ -525,17 +526,18 @@ local function startKeySystem()
     keyTab:CreateButton({
         Name = "Get Key (Discord)",
         Callback = function()
-            setclipboard("https://discord.gg/YOUR_INVITE")
+            setclipboard(DISCORD_INVITE)
             Rayfield:Notify({Title = "Copied", Content = "Discord invite copied!", Duration = 2})
         end
     })
 end
 
--- === MAIN ENTRY ===
+-- ========== MAIN ENTRY ==========
 local function main()
     repeat wait() until LocalPlayer.Character
-    notify("Character found", 2)
+    notify("Nebula starting...", 2)
 
+    -- Check for saved key
     local savedKey = nil
     pcall(function()
         if isfolder and isfile and isfolder("Nebula") and isfile("Nebula/key.txt") then
@@ -546,7 +548,7 @@ local function main()
     if savedKey then
         local valid, _ = checkKey(savedKey)
         if valid then
-            createFullUI()
+            loadFullUI()
             RunService.Heartbeat:Connect(onTick)
             notify("Loaded with saved key", 2)
             return
@@ -558,7 +560,7 @@ end
 
 spawn(main)
 
--- === FLIGHT KEYBIND ===
+-- ========== FLIGHT KEYBIND ==========
 UserInputService.InputBegan:Connect(function(i, gp)
     if gp then return end
     if i.KeyCode == Enum.KeyCode.F then
