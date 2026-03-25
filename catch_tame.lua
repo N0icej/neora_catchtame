@@ -1,6 +1,6 @@
 --[[
-  NEBULA | CATCH & TAME – FINAL WORKING VERSION WITH KEY SYSTEM
-  Uses the working UI from the previous step (which you confirmed works).
+  NEBULA | CATCH & TAME – FINAL WORKING VERSION
+  Key system + full Rayfield UI + all features.
 ]]
 
 local Players = game:GetService("Players")
@@ -10,23 +10,22 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
--- CONFIG
+-- === CONFIGURATION ===
 local KEY_LIST_URL = "https://raw.githubusercontent.com/N0icej/neora_catchtame/main/keys.txt"
-local DISCORD_INVITE = "YOUR_DISCORD_INVITE" -- Change this
 
--- NOTIFICATION
-local function notify(msg, duration)
+-- === NOTIFICATION ===
+local function notify(msg)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Nebula",
             Text = msg,
-            Duration = duration or 2
+            Duration = 2
         })
     end)
     print("[Nebula] " .. msg)
 end
 
--- STATE (same as before)
+-- === STATE ===
 local State = {
     ESP = false,
     AutoCatch = false,
@@ -49,7 +48,7 @@ local State = {
     ESPObjects = {}
 }
 
--- ========== CACHE & SCAN (Performance) ==========
+-- === CACHE & SCAN (performance) ===
 local rootPartCache, humanoidCache, lastCacheRefresh = nil, nil, 0
 local function getRootPart()
     local now = tick()
@@ -145,7 +144,7 @@ local function teleport(part)
     if root and part then root.CFrame = part.CFrame + Vector3.new(0,5,0) end
 end
 
--- ========== REMOTES & ACTIONS ==========
+-- === REMOTES & ACTIONS ===
 local function fireRemote(pattern, ...)
     local args = {...}
     for _, r in ipairs(ReplicatedStorage:GetDescendants()) do
@@ -210,7 +209,7 @@ local function collectCash(cashItem)
     if root and cashItem:IsA("BasePart") then cashItem.CFrame = root.CFrame + Vector3.new(0,3,0) end
 end
 
--- ========== FLY SYSTEM ==========
+-- === FLY ===
 local flying = false
 local vel, gyro
 local function toggleFly()
@@ -237,7 +236,7 @@ local function toggleFly()
     end
 end
 
--- ========== ESP ==========
+-- === ESP ===
 local function clearESP()
     for _, obj in pairs(State.ESPObjects) do pcall(obj.Destroy, obj) end
     State.ESPObjects = {}
@@ -325,7 +324,7 @@ local function updateESP()
     end
 end
 
--- ========== MAIN LOOP ==========
+-- === MAIN LOOP ===
 local last = {catch=0, tame=0, farm=0, cash=0, claim=0, quest=0, sell=0, buy=0, hatch=0, train=0, esp=0}
 local function onTick()
     local now = tick()
@@ -412,9 +411,14 @@ local function onTick()
     end
 end
 
--- ========== FULL UI (WORKING VERSION) ==========
-local function loadFullUI()
+-- === RAYFIELD UI (Full) ===
+local function createFullUI()
+    notify("Creating full UI...")
     local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+    if not Rayfield then
+        notify("Rayfield reload failed")
+        return
+    end
     local Window = Rayfield:CreateWindow({
         Name = "Nebula | Catch & Tame",
         Icon = 0,
@@ -425,6 +429,7 @@ local function loadFullUI()
         DisableBuildWarnings = true
     })
 
+    -- Combat tab
     local combatTab = Window:CreateTab("Combat", 0)
     combatTab:CreateSection("Auto Systems")
     combatTab:CreateToggle({Name = "Auto Catch", CurrentValue = State.AutoCatch, Callback = function(v) State.AutoCatch = v end})
@@ -432,6 +437,7 @@ local function loadFullUI()
     combatTab:CreateToggle({Name = "Auto Tame", CurrentValue = State.AutoTame, Callback = function(v) State.AutoTame = v end})
     combatTab:CreateSlider({Name = "Tame Range", Range = {5, 45}, Increment = 5, CurrentValue = State.TameRange, Callback = function(v) State.TameRange = v end})
 
+    -- Utility tab
     local utilTab = Window:CreateTab("Utility", 0)
     utilTab:CreateSection("ESP & Farming")
     utilTab:CreateToggle({Name = "ESP (Wallhack)", CurrentValue = State.ESP, Callback = function(v) State.ESP = v end})
@@ -440,6 +446,7 @@ local function loadFullUI()
     utilTab:CreateToggle({Name = "Auto Cash", CurrentValue = State.AutoCash, Callback = function(v) State.AutoCash = v end})
     utilTab:CreateSlider({Name = "Cash Range", Range = {5, 45}, Increment = 5, CurrentValue = State.CashRange, Callback = function(v) State.CashRange = v end})
 
+    -- Automation tab
     local autoTab = Window:CreateTab("Automation", 0)
     autoTab:CreateSection("Auto Actions")
     autoTab:CreateToggle({Name = "Auto Claim", CurrentValue = State.AutoClaim, Callback = function(v) State.AutoClaim = v end})
@@ -449,12 +456,14 @@ local function loadFullUI()
     autoTab:CreateToggle({Name = "Auto Hatch", CurrentValue = State.AutoHatch, Callback = function(v) State.AutoHatch = v end})
     autoTab:CreateToggle({Name = "Auto Train", CurrentValue = State.AutoTrain, Callback = function(v) State.AutoTrain = v end})
 
+    -- Movement tab
     local moveTab = Window:CreateTab("Movement", 0)
     moveTab:CreateSection("Stats")
     moveTab:CreateSlider({Name = "Walk Speed", Range = {16, 200}, Increment = 5, CurrentValue = State.Speed, Callback = function(v) State.Speed = v end})
     moveTab:CreateSlider({Name = "Jump Power", Range = {50, 200}, Increment = 10, CurrentValue = State.JumpPower, Callback = function(v) State.JumpPower = v end})
     moveTab:CreateToggle({Name = "Fly Mode (F Key)", CurrentValue = State.Fly, Callback = function(v) State.Fly = v; if v then toggleFly() end end})
 
+    -- Teleport tab
     local tpTab = Window:CreateTab("Teleport", 0)
     tpTab:CreateSection("Quick Teleport")
     tpTab:CreateButton({Name = "🐾 To Nearest Creature", Callback = function() local c, _ = nearestCreature(); if c and c:FindFirstChild("HumanoidRootPart") then teleport(c.HumanoidRootPart) end end})
@@ -463,15 +472,16 @@ local function loadFullUI()
     tpTab:CreateButton({Name = "🏠 To Spawn", Callback = function() local spawn = Workspace:FindFirstChild("SpawnLocation"); if spawn then teleport(spawn) end end})
     tpTab:CreateButton({Name = "🔄 Rejoin Game", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end})
 
+    -- Info tab
     local infoTab = Window:CreateTab("Info", 0)
     infoTab:CreateSection("About")
     infoTab:CreateParagraph({Title = "Nebula | Catch & Tame", Content = "All-in-one automation for Catch & Tame.\n\nFeatures:\n- ESP\n- Auto Catch/Tame/Farm/Cash\n- Auto Claim/Quest/Sell/Buy/Hatch/Train\n- Speed & Jump modifiers\n- Teleports\n- Fly mode (F key)\n\nPress F to toggle flight.\nGUI can be toggled with the keybind set in Rayfield (default G)."})
 
     Rayfield:Notify({Title = "Nebula", Content = "Loaded! Press F for flight.", Duration = 3})
-    notify("Full UI loaded successfully")
+    notify("Full UI loaded")
 end
 
--- ========== KEY SYSTEM ==========
+-- === KEY SYSTEM ===
 local function checkKey(key)
     local success, data = pcall(game.HttpGet, game, KEY_LIST_URL)
     if not success or not data then return false, "Failed to fetch key list" end
@@ -516,7 +526,8 @@ local function startKeySystem()
                 end)
                 Rayfield:Notify({Title = "Success", Content = msg, Duration = 3})
                 KeyWindow:Destroy()
-                loadFullUI()
+                -- Now load the full UI and start the loop
+                createFullUI()
                 RunService.Heartbeat:Connect(onTick)
             else
                 Rayfield:Notify({Title = "Error", Content = msg, Duration = 5})
@@ -526,16 +537,16 @@ local function startKeySystem()
     keyTab:CreateButton({
         Name = "Get Key (Discord)",
         Callback = function()
-            setclipboard(DISCORD_INVITE)
+            setclipboard("https://discord.gg/YOUR_INVITE") -- CHANGE TO YOUR DISCORD
             Rayfield:Notify({Title = "Copied", Content = "Discord invite copied!", Duration = 2})
         end
     })
 end
 
--- ========== MAIN ENTRY ==========
+-- === MAIN ===
 local function main()
     repeat wait() until LocalPlayer.Character
-    notify("Nebula starting...", 2)
+    notify("Character found")
 
     -- Check for saved key
     local savedKey = nil
@@ -548,9 +559,9 @@ local function main()
     if savedKey then
         local valid, _ = checkKey(savedKey)
         if valid then
-            loadFullUI()
+            createFullUI()
             RunService.Heartbeat:Connect(onTick)
-            notify("Loaded with saved key", 2)
+            notify("Loaded with saved key")
             return
         end
     end
@@ -560,7 +571,7 @@ end
 
 spawn(main)
 
--- ========== FLIGHT KEYBIND ==========
+-- === FLIGHT KEYBIND ===
 UserInputService.InputBegan:Connect(function(i, gp)
     if gp then return end
     if i.KeyCode == Enum.KeyCode.F then
