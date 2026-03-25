@@ -1,4 +1,8 @@
---[[ NEBULA | CATCH & TAME – SIMPLIFIED WORKING VERSION ]]
+--[[
+  NEBULA | CATCH & TAME – FINAL WORKING VERSION
+  Full features, Rayfield UI, no key system (will add later)
+]]
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -6,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
+-- === SAFE NOTIFICATION ===
 local function notify(msg)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -16,6 +21,8 @@ local function notify(msg)
     end)
     print("[Nebula] " .. msg)
 end
+
+notify("Step 1: Script started")
 
 -- === STATE ===
 local State = {
@@ -40,7 +47,9 @@ local State = {
     ESPObjects = {}
 }
 
--- === CACHE & SCAN ===
+notify("Step 2: State initialized")
+
+-- === CACHE & SCAN (performance) ===
 local rootPartCache, humanoidCache, lastCacheRefresh = nil, nil, 0
 local function getRootPart()
     local now = tick()
@@ -403,81 +412,101 @@ local function onTick()
     end
 end
 
--- === RAYFIELD UI (with error catching) ===
+-- === RAYFIELD UI CONSTRUCTION WITH ERROR HANDLING ===
 local function createUI()
+    notify("Creating Rayfield UI...")
     local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+    if not Rayfield then
+        notify("Failed to load Rayfield")
+        return
+    end
+    notify("Rayfield loaded")
+
     local Window = Rayfield:CreateWindow({
         Name = "Nebula | Catch & Tame",
+        Icon = 0,
         LoadingTitle = "Nebula",
         LoadingSubtitle = "by N0icej",
-        Theme = "Default"
+        Theme = "Default",
+        DisableRayfieldPrompts = false,
+        DisableBuildWarnings = true
     })
+    if not Window then
+        notify("Failed to create window")
+        return
+    end
+    notify("Window created")
 
-    -- Combat Tab
-    local combat = Window:CreateTab("Combat")
-    combat:CreateSection("Auto Systems")
-    combat:CreateToggle({Name = "Auto Catch", CurrentValue = State.AutoCatch, Callback = function(v) State.AutoCatch = v end})
-    combat:CreateSlider({Name = "Catch Range", Range = {5, 50}, Increment = 5, CurrentValue = State.CatchRange, Callback = function(v) State.CatchRange = v end})
-    combat:CreateToggle({Name = "Auto Tame", CurrentValue = State.AutoTame, Callback = function(v) State.AutoTame = v end})
-    combat:CreateSlider({Name = "Tame Range", Range = {5, 45}, Increment = 5, CurrentValue = State.TameRange, Callback = function(v) State.TameRange = v end})
+    -- === COMBAT TAB ===
+    local combatTab = Window:CreateTab("Combat", 0)
+    combatTab:CreateSection("Auto Systems")
+    combatTab:CreateToggle({Name = "Auto Catch", CurrentValue = State.AutoCatch, Callback = function(v) State.AutoCatch = v end})
+    combatTab:CreateSlider({Name = "Catch Range", Range = {5, 50}, Increment = 5, CurrentValue = State.CatchRange, Callback = function(v) State.CatchRange = v end})
+    combatTab:CreateToggle({Name = "Auto Tame", CurrentValue = State.AutoTame, Callback = function(v) State.AutoTame = v end})
+    combatTab:CreateSlider({Name = "Tame Range", Range = {5, 45}, Increment = 5, CurrentValue = State.TameRange, Callback = function(v) State.TameRange = v end})
+    notify("Combat tab done")
 
-    -- Utility Tab
-    local util = Window:CreateTab("Utility")
-    util:CreateSection("ESP & Farming")
-    util:CreateToggle({Name = "ESP (Wallhack)", CurrentValue = State.ESP, Callback = function(v) State.ESP = v end})
-    util:CreateToggle({Name = "Auto Farm", CurrentValue = State.AutoFarm, Callback = function(v) State.AutoFarm = v end})
-    util:CreateSlider({Name = "Farm Range", Range = {5, 45}, Increment = 5, CurrentValue = State.FarmRange, Callback = function(v) State.FarmRange = v end})
-    util:CreateToggle({Name = "Auto Cash", CurrentValue = State.AutoCash, Callback = function(v) State.AutoCash = v end})
-    util:CreateSlider({Name = "Cash Range", Range = {5, 45}, Increment = 5, CurrentValue = State.CashRange, Callback = function(v) State.CashRange = v end})
+    -- === UTILITY TAB ===
+    local utilTab = Window:CreateTab("Utility", 0)
+    utilTab:CreateSection("ESP & Farming")
+    utilTab:CreateToggle({Name = "ESP (Wallhack)", CurrentValue = State.ESP, Callback = function(v) State.ESP = v end})
+    utilTab:CreateToggle({Name = "Auto Farm", CurrentValue = State.AutoFarm, Callback = function(v) State.AutoFarm = v end})
+    utilTab:CreateSlider({Name = "Farm Range", Range = {5, 45}, Increment = 5, CurrentValue = State.FarmRange, Callback = function(v) State.FarmRange = v end})
+    utilTab:CreateToggle({Name = "Auto Cash", CurrentValue = State.AutoCash, Callback = function(v) State.AutoCash = v end})
+    utilTab:CreateSlider({Name = "Cash Range", Range = {5, 45}, Increment = 5, CurrentValue = State.CashRange, Callback = function(v) State.CashRange = v end})
+    notify("Utility tab done")
 
-    -- Automation Tab
-    local auto = Window:CreateTab("Automation")
-    auto:CreateSection("Auto Actions")
-    auto:CreateToggle({Name = "Auto Claim", CurrentValue = State.AutoClaim, Callback = function(v) State.AutoClaim = v end})
-    auto:CreateToggle({Name = "Auto Quest", CurrentValue = State.AutoQuest, Callback = function(v) State.AutoQuest = v end})
-    auto:CreateToggle({Name = "Auto Sell", CurrentValue = State.AutoSell, Callback = function(v) State.AutoSell = v end})
-    auto:CreateToggle({Name = "Auto Buy", CurrentValue = State.AutoBuy, Callback = function(v) State.AutoBuy = v end})
-    auto:CreateToggle({Name = "Auto Hatch", CurrentValue = State.AutoHatch, Callback = function(v) State.AutoHatch = v end})
-    auto:CreateToggle({Name = "Auto Train", CurrentValue = State.AutoTrain, Callback = function(v) State.AutoTrain = v end})
+    -- === AUTOMATION TAB ===
+    local autoTab = Window:CreateTab("Automation", 0)
+    autoTab:CreateSection("Auto Actions")
+    autoTab:CreateToggle({Name = "Auto Claim", CurrentValue = State.AutoClaim, Callback = function(v) State.AutoClaim = v end})
+    autoTab:CreateToggle({Name = "Auto Quest", CurrentValue = State.AutoQuest, Callback = function(v) State.AutoQuest = v end})
+    autoTab:CreateToggle({Name = "Auto Sell", CurrentValue = State.AutoSell, Callback = function(v) State.AutoSell = v end})
+    autoTab:CreateToggle({Name = "Auto Buy", CurrentValue = State.AutoBuy, Callback = function(v) State.AutoBuy = v end})
+    autoTab:CreateToggle({Name = "Auto Hatch", CurrentValue = State.AutoHatch, Callback = function(v) State.AutoHatch = v end})
+    autoTab:CreateToggle({Name = "Auto Train", CurrentValue = State.AutoTrain, Callback = function(v) State.AutoTrain = v end})
+    notify("Automation tab done")
 
-    -- Movement Tab
-    local move = Window:CreateTab("Movement")
-    move:CreateSection("Stats")
-    move:CreateSlider({Name = "Walk Speed", Range = {16, 200}, Increment = 5, CurrentValue = State.Speed, Callback = function(v) State.Speed = v end})
-    move:CreateSlider({Name = "Jump Power", Range = {50, 200}, Increment = 10, CurrentValue = State.JumpPower, Callback = function(v) State.JumpPower = v end})
-    move:CreateToggle({Name = "Fly Mode (F Key)", CurrentValue = State.Fly, Callback = function(v) State.Fly = v; if v then toggleFly() end end})
+    -- === MOVEMENT TAB ===
+    local moveTab = Window:CreateTab("Movement", 0)
+    moveTab:CreateSection("Stats")
+    moveTab:CreateSlider({Name = "Walk Speed", Range = {16, 200}, Increment = 5, CurrentValue = State.Speed, Callback = function(v) State.Speed = v end})
+    moveTab:CreateSlider({Name = "Jump Power", Range = {50, 200}, Increment = 10, CurrentValue = State.JumpPower, Callback = function(v) State.JumpPower = v end})
+    moveTab:CreateToggle({Name = "Fly Mode (F Key)", CurrentValue = State.Fly, Callback = function(v) State.Fly = v; if v then toggleFly() end end})
+    notify("Movement tab done")
 
-    -- Teleport Tab
-    local tp = Window:CreateTab("Teleport")
-    tp:CreateSection("Quick Teleport")
-    tp:CreateButton({Name = "🐾 To Nearest Creature", Callback = function() local c, _ = nearestCreature(); if c and c:FindFirstChild("HumanoidRootPart") then teleport(c.HumanoidRootPart) end end})
-    tp:CreateButton({Name = "🏆 To Best Pet", Callback = function() local p = bestPet(); if p and p:FindFirstChild("HumanoidRootPart") then teleport(p.HumanoidRootPart) end end})
-    tp:CreateButton({Name = "💰 To Nearest Cash", Callback = function() local c, _ = nearestCash(); if c then local part = c:IsA("BasePart") and c or c:FindFirstChildWhichIsA("BasePart"); if part then teleport(part) end end end})
-    tp:CreateButton({Name = "🏠 To Spawn", Callback = function() local spawn = Workspace:FindFirstChild("SpawnLocation"); if spawn then teleport(spawn) end end})
-    tp:CreateButton({Name = "🔄 Rejoin Game", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end})
+    -- === TELEPORT TAB ===
+    local tpTab = Window:CreateTab("Teleport", 0)
+    tpTab:CreateSection("Quick Teleport")
+    tpTab:CreateButton({Name = "🐾 To Nearest Creature", Callback = function() local c, _ = nearestCreature(); if c and c:FindFirstChild("HumanoidRootPart") then teleport(c.HumanoidRootPart) end end})
+    tpTab:CreateButton({Name = "🏆 To Best Pet", Callback = function() local p = bestPet(); if p and p:FindFirstChild("HumanoidRootPart") then teleport(p.HumanoidRootPart) end end})
+    tpTab:CreateButton({Name = "💰 To Nearest Cash", Callback = function() local c, _ = nearestCash(); if c then local part = c:IsA("BasePart") and c or c:FindFirstChildWhichIsA("BasePart"); if part then teleport(part) end end end})
+    tpTab:CreateButton({Name = "🏠 To Spawn", Callback = function() local spawn = Workspace:FindFirstChild("SpawnLocation"); if spawn then teleport(spawn) end end})
+    tpTab:CreateButton({Name = "🔄 Rejoin Game", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end})
+    notify("Teleport tab done")
 
-    -- Info Tab
-    local info = Window:CreateTab("Info")
-    info:CreateSection("About")
-    info:CreateParagraph({Title = "Nebula | Catch & Tame", Content = "All-in-one automation.\n\nPress F for flight.\nGUI toggle key is set in Rayfield (default G)."})
+    -- === INFO TAB ===
+    local infoTab = Window:CreateTab("Info", 0)
+    infoTab:CreateSection("About")
+    infoTab:CreateParagraph({Title = "Nebula | Catch & Tame", Content = "All-in-one automation for Catch & Tame.\n\nFeatures:\n- ESP\n- Auto Catch/Tame/Farm/Cash\n- Auto Claim/Quest/Sell/Buy/Hatch/Train\n- Speed & Jump modifiers\n- Teleports\n- Fly mode (F key)\n\nPress F to toggle flight.\nGUI can be toggled with the keybind set in Rayfield (default G)."})
+    notify("Info tab done")
 
     Rayfield:Notify({Title = "Nebula", Content = "Loaded! Press F for flight.", Duration = 3})
+    notify("UI fully loaded")
 end
 
 -- === START ===
 local function start()
-    repeat wait() until LocalPlayer.Character
-    local success, err = pcall(createUI)
-    if not success then
-        notify("UI creation failed: " .. tostring(err))
-    else
-        notify("Nebula loaded! Press F for flight.")
-    end
+    repeat wait() until LocalPlayer and LocalPlayer.Character
+    notify("Character found")
+    createUI()
     RunService.Heartbeat:Connect(onTick)
+    notify("Main loop running")
 end
 
 spawn(start)
 
+-- === FLIGHT KEYBIND ===
 UserInputService.InputBegan:Connect(function(i, gp)
     if gp then return end
     if i.KeyCode == Enum.KeyCode.F then
