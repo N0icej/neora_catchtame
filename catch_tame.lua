@@ -1,6 +1,6 @@
 --[[
   NEBULA | CATCH & TAME – FINAL WORKING VERSION
-  Uses simple GUI (proven to work), key system, all features.
+  Key system + full features (simple GUI)
 ]]
 
 local Players = game:GetService("Players")
@@ -419,7 +419,7 @@ local function checkKey(key)
     return false
 end
 
--- === CREATE FULL FEATURE GUI (simple, no Rayfield) ===
+-- === FULL FEATURE GUI (simple, same style as test) ===
 local function createFullGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "Nebula"
