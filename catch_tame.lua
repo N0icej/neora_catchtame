@@ -1,6 +1,6 @@
 --[[
   NEBULA | CATCH & TAME – FINAL WORKING VERSION
-  Key system + full Rayfield UI + all features.
+  Uses simple GUI (proven to work), key system, all features.
 ]]
 
 local Players = game:GetService("Players")
@@ -10,10 +10,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
--- === CONFIGURATION ===
 local KEY_LIST_URL = "https://raw.githubusercontent.com/N0icej/neora_catchtame/main/keys.txt"
 
--- === NOTIFICATION ===
 local function notify(msg)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -411,144 +409,310 @@ local function onTick()
     end
 end
 
--- === RAYFIELD UI (Full) ===
-local function createFullUI()
-    notify("Creating full UI...")
-    local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-    if not Rayfield then
-        notify("Rayfield reload failed")
-        return
-    end
-    local Window = Rayfield:CreateWindow({
-        Name = "Nebula | Catch & Tame",
-        Icon = 0,
-        LoadingTitle = "Nebula",
-        LoadingSubtitle = "by N0icej",
-        Theme = "Default",
-        DisableRayfieldPrompts = false,
-        DisableBuildWarnings = true
-    })
-
-    -- Combat tab
-    local combatTab = Window:CreateTab("Combat", 0)
-    combatTab:CreateSection("Auto Systems")
-    combatTab:CreateToggle({Name = "Auto Catch", CurrentValue = State.AutoCatch, Callback = function(v) State.AutoCatch = v end})
-    combatTab:CreateSlider({Name = "Catch Range", Range = {5, 50}, Increment = 5, CurrentValue = State.CatchRange, Callback = function(v) State.CatchRange = v end})
-    combatTab:CreateToggle({Name = "Auto Tame", CurrentValue = State.AutoTame, Callback = function(v) State.AutoTame = v end})
-    combatTab:CreateSlider({Name = "Tame Range", Range = {5, 45}, Increment = 5, CurrentValue = State.TameRange, Callback = function(v) State.TameRange = v end})
-
-    -- Utility tab
-    local utilTab = Window:CreateTab("Utility", 0)
-    utilTab:CreateSection("ESP & Farming")
-    utilTab:CreateToggle({Name = "ESP (Wallhack)", CurrentValue = State.ESP, Callback = function(v) State.ESP = v end})
-    utilTab:CreateToggle({Name = "Auto Farm", CurrentValue = State.AutoFarm, Callback = function(v) State.AutoFarm = v end})
-    utilTab:CreateSlider({Name = "Farm Range", Range = {5, 45}, Increment = 5, CurrentValue = State.FarmRange, Callback = function(v) State.FarmRange = v end})
-    utilTab:CreateToggle({Name = "Auto Cash", CurrentValue = State.AutoCash, Callback = function(v) State.AutoCash = v end})
-    utilTab:CreateSlider({Name = "Cash Range", Range = {5, 45}, Increment = 5, CurrentValue = State.CashRange, Callback = function(v) State.CashRange = v end})
-
-    -- Automation tab
-    local autoTab = Window:CreateTab("Automation", 0)
-    autoTab:CreateSection("Auto Actions")
-    autoTab:CreateToggle({Name = "Auto Claim", CurrentValue = State.AutoClaim, Callback = function(v) State.AutoClaim = v end})
-    autoTab:CreateToggle({Name = "Auto Quest", CurrentValue = State.AutoQuest, Callback = function(v) State.AutoQuest = v end})
-    autoTab:CreateToggle({Name = "Auto Sell", CurrentValue = State.AutoSell, Callback = function(v) State.AutoSell = v end})
-    autoTab:CreateToggle({Name = "Auto Buy", CurrentValue = State.AutoBuy, Callback = function(v) State.AutoBuy = v end})
-    autoTab:CreateToggle({Name = "Auto Hatch", CurrentValue = State.AutoHatch, Callback = function(v) State.AutoHatch = v end})
-    autoTab:CreateToggle({Name = "Auto Train", CurrentValue = State.AutoTrain, Callback = function(v) State.AutoTrain = v end})
-
-    -- Movement tab
-    local moveTab = Window:CreateTab("Movement", 0)
-    moveTab:CreateSection("Stats")
-    moveTab:CreateSlider({Name = "Walk Speed", Range = {16, 200}, Increment = 5, CurrentValue = State.Speed, Callback = function(v) State.Speed = v end})
-    moveTab:CreateSlider({Name = "Jump Power", Range = {50, 200}, Increment = 10, CurrentValue = State.JumpPower, Callback = function(v) State.JumpPower = v end})
-    moveTab:CreateToggle({Name = "Fly Mode (F Key)", CurrentValue = State.Fly, Callback = function(v) State.Fly = v; if v then toggleFly() end end})
-
-    -- Teleport tab
-    local tpTab = Window:CreateTab("Teleport", 0)
-    tpTab:CreateSection("Quick Teleport")
-    tpTab:CreateButton({Name = "🐾 To Nearest Creature", Callback = function() local c, _ = nearestCreature(); if c and c:FindFirstChild("HumanoidRootPart") then teleport(c.HumanoidRootPart) end end})
-    tpTab:CreateButton({Name = "🏆 To Best Pet", Callback = function() local p = bestPet(); if p and p:FindFirstChild("HumanoidRootPart") then teleport(p.HumanoidRootPart) end end})
-    tpTab:CreateButton({Name = "💰 To Nearest Cash", Callback = function() local c, _ = nearestCash(); if c then local part = c:IsA("BasePart") and c or c:FindFirstChildWhichIsA("BasePart"); if part then teleport(part) end end end})
-    tpTab:CreateButton({Name = "🏠 To Spawn", Callback = function() local spawn = Workspace:FindFirstChild("SpawnLocation"); if spawn then teleport(spawn) end end})
-    tpTab:CreateButton({Name = "🔄 Rejoin Game", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end})
-
-    -- Info tab
-    local infoTab = Window:CreateTab("Info", 0)
-    infoTab:CreateSection("About")
-    infoTab:CreateParagraph({Title = "Nebula | Catch & Tame", Content = "All-in-one automation for Catch & Tame.\n\nFeatures:\n- ESP\n- Auto Catch/Tame/Farm/Cash\n- Auto Claim/Quest/Sell/Buy/Hatch/Train\n- Speed & Jump modifiers\n- Teleports\n- Fly mode (F key)\n\nPress F to toggle flight.\nGUI can be toggled with the keybind set in Rayfield (default G)."})
-
-    Rayfield:Notify({Title = "Nebula", Content = "Loaded! Press F for flight.", Duration = 3})
-    notify("Full UI loaded")
-end
-
--- === KEY SYSTEM ===
+-- === KEY CHECK ===
 local function checkKey(key)
     local success, data = pcall(game.HttpGet, game, KEY_LIST_URL)
-    if not success or not data then return false, "Failed to fetch key list" end
+    if not success or not data then return false end
     for line in data:gmatch("[^\r\n]+") do
-        if line == key then return true, "Valid key" end
+        if line == key then return true end
     end
-    return false, "Invalid key"
+    return false
 end
 
-local function startKeySystem()
-    local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-    local KeyWindow = Rayfield:CreateWindow({
-        Name = "Nebula | Key System",
-        Icon = 0,
-        LoadingTitle = "Nebula",
-        LoadingSubtitle = "Enter your key",
-        Theme = "Default",
-        DisableRayfieldPrompts = false,
-        DisableBuildWarnings = true
-    })
-    local keyTab = KeyWindow:CreateTab("Key", 0)
-    keyTab:CreateSection("Verification")
-    local keyInput = keyTab:CreateInput({
-        Name = "Enter Key",
-        PlaceholderText = "Paste your key here",
-        RemoveTextAfterFocusLost = false,
-        Callback = function() end
-    })
-    keyTab:CreateButton({
-        Name = "Verify Key",
-        Callback = function()
-            local entered = keyInput.CurrentValue
-            if entered == "" then
-                Rayfield:Notify({Title = "Error", Content = "Please enter a key", Duration = 3})
-                return
-            end
-            local valid, msg = checkKey(entered)
-            if valid then
-                pcall(function()
-                    if not isfolder("Nebula") then makefolder("Nebula") end
-                    writefile("Nebula/key.txt", entered)
-                end)
-                Rayfield:Notify({Title = "Success", Content = msg, Duration = 3})
-                KeyWindow:Destroy()
-                -- Now load the full UI and start the loop
-                createFullUI()
-                RunService.Heartbeat:Connect(onTick)
-            else
-                Rayfield:Notify({Title = "Error", Content = msg, Duration = 5})
-            end
+-- === CREATE FULL FEATURE GUI (simple, no Rayfield) ===
+local function createFullGUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "Nebula"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local main = Instance.new("Frame")
+    main.Size = UDim2.new(0, 280, 0, 520)
+    main.Position = UDim2.new(0.5, -140, 0.5, -260)
+    main.BackgroundColor3 = Color3.fromRGB(20,22,30)
+    main.BackgroundTransparency = 0.15
+    main.BorderSizePixel = 0
+    main.Parent = screenGui
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = main
+
+    local title = Instance.new("TextButton")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundColor3 = Color3.fromRGB(35,35,45)
+    title.Text = "⚡ NEBULA | CATCH & TAME"
+    title.TextColor3 = Color3.fromRGB(0,255,220)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 12
+    title.BorderSizePixel = 0
+    title.Parent = main
+    local tcorner = Instance.new("UICorner")
+    tcorner.CornerRadius = UDim.new(0, 8)
+    tcorner.Parent = title
+
+    local close = Instance.new("TextButton")
+    close.Size = UDim2.new(0, 26, 0, 26)
+    close.Position = UDim2.new(1, -30, 0.5, -13)
+    close.BackgroundColor3 = Color3.fromRGB(45,48,60)
+    close.Text = "✕"
+    close.TextColor3 = Color3.fromRGB(255,100,100)
+    close.Font = Enum.Font.Gotham
+    close.TextSize = 14
+    close.BorderSizePixel = 0
+    close.Parent = title
+    local ccorner = Instance.new("UICorner")
+    ccorner.CornerRadius = UDim.new(0, 4)
+    ccorner.Parent = close
+
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, -10, 1, -40)
+    scroll.Position = UDim2.new(0, 5, 0, 35)
+    scroll.BackgroundTransparency = 1
+    scroll.BorderSizePixel = 0
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scroll.ScrollBarThickness = 4
+    scroll.Parent = main
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 5)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = scroll
+
+    local function addToggle(text, stateKey)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 32)
+        btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0,130,110) or Color3.fromRGB(45,45,60)
+        btn.Text = text .. (State[stateKey] and " ✓" or " ✗")
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 13
+        btn.BorderSizePixel = 0
+        btn.Parent = scroll
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.Parent = btn
+        btn.MouseButton1Click:Connect(function()
+            State[stateKey] = not State[stateKey]
+            btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0,130,110) or Color3.fromRGB(45,45,60)
+            btn.Text = text .. (State[stateKey] and " ✓" or " ✗")
+            notify(text .. " " .. (State[stateKey] and "ON" or "OFF"))
+        end)
+        return btn
+    end
+
+    local function addAction(text, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 32)
+        btn.BackgroundColor3 = Color3.fromRGB(55,55,75)
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 13
+        btn.BorderSizePixel = 0
+        btn.Parent = scroll
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.Parent = btn
+        btn.MouseButton1Click:Connect(callback)
+        return btn
+    end
+
+    local function addIncrement(text, stateKey, minVal, maxVal, step)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 32)
+        btn.BackgroundColor3 = Color3.fromRGB(45,48,60)
+        btn.Text = text .. ": " .. State[stateKey]
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 13
+        btn.BorderSizePixel = 0
+        btn.Parent = scroll
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.Parent = btn
+        btn.MouseButton1Click:Connect(function()
+            local newVal = State[stateKey] + step
+            if newVal > maxVal then newVal = minVal end
+            State[stateKey] = newVal
+            btn.Text = text .. ": " .. newVal
+            notify(text .. " set to " .. newVal)
+        end)
+        return btn
+    end
+
+    -- Toggles
+    addToggle("👁️ ESP (Wallhack)", "ESP")
+    addToggle("🎣 Auto Catch", "AutoCatch")
+    addToggle("🍖 Auto Tame", "AutoTame")
+    addToggle("🌾 Auto Farm", "AutoFarm")
+    addToggle("💰 Auto Cash", "AutoCash")
+    addToggle("🎁 Auto Claim", "AutoClaim")
+    addToggle("📜 Auto Quest", "AutoQuest")
+    addToggle("💸 Auto Sell", "AutoSell")
+    addToggle("🛒 Auto Buy", "AutoBuy")
+    addToggle("🥚 Auto Hatch", "AutoHatch")
+    addToggle("📈 Auto Train", "AutoTrain")
+    addToggle("🕊️ Fly Mode (F)", "Fly")
+
+    -- Increment buttons
+    addIncrement("🏃 Walk Speed", "Speed", 16, 200, 5)
+    addIncrement("🦘 Jump Power", "JumpPower", 50, 200, 10)
+    addIncrement("🎯 Catch Range", "CatchRange", 5, 50, 5)
+    addIncrement("🍖 Tame Range", "TameRange", 5, 45, 5)
+    addIncrement("🌾 Farm Range", "FarmRange", 5, 45, 5)
+    addIncrement("💰 Cash Range", "CashRange", 5, 45, 5)
+
+    -- Teleport actions
+    addAction("🐾 Teleport to Creature", function()
+        local c, _ = nearestCreature()
+        if c and c:FindFirstChild("HumanoidRootPart") then teleport(c.HumanoidRootPart) end
+    end)
+    addAction("🏆 Teleport to Best Pet", function()
+        local p = bestPet()
+        if p and p:FindFirstChild("HumanoidRootPart") then teleport(p.HumanoidRootPart) end
+    end)
+    addAction("💰 Teleport to Cash", function()
+        local c, _ = nearestCash()
+        if c then
+            local part = c:IsA("BasePart") and c or c:FindFirstChildWhichIsA("BasePart")
+            if part then teleport(part) end
         end
-    })
-    keyTab:CreateButton({
-        Name = "Get Key (Discord)",
-        Callback = function()
-            setclipboard("https://discord.gg/YOUR_INVITE") -- CHANGE TO YOUR DISCORD
-            Rayfield:Notify({Title = "Copied", Content = "Discord invite copied!", Duration = 2})
+    end)
+    addAction("🏠 Teleport to Spawn", function()
+        local spawn = Workspace:FindFirstChild("SpawnLocation")
+        if spawn then teleport(spawn) end
+    end)
+    addAction("🔄 Rejoin Game", function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+    end)
+
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+    end)
+
+    -- Dragging
+    local drag, dragStart, frameStart = false
+    title.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            drag = true
+            dragStart = i.Position
+            frameStart = main.Position
         end
-    })
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = i.Position - dragStart
+            main.Position = UDim2.new(frameStart.X.Scale, frameStart.X.Offset + delta.X, frameStart.Y.Scale, frameStart.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
+    end)
+
+    close.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+        clearESP()
+        notify("GUI closed")
+    end)
+
+    notify("Nebula GUI ready")
+end
+
+-- === KEY ENTRY WINDOW ===
+local function showKeyEntry()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NebulaKey"
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 150)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+    frame.BackgroundColor3 = Color3.fromRGB(20,22,30)
+    frame.BackgroundTransparency = 0.1
+    frame.Parent = screenGui
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundColor3 = Color3.fromRGB(35,35,45)
+    title.Text = "Nebula | Key System"
+    title.TextColor3 = Color3.fromRGB(0,255,220)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 12
+    title.Parent = frame
+
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(0.9, 0, 0, 35)
+    textBox.Position = UDim2.new(0.05, 0, 0, 40)
+    textBox.PlaceholderText = "Enter your key"
+    textBox.BackgroundColor3 = Color3.fromRGB(45,48,60)
+    textBox.TextColor3 = Color3.fromRGB(255,255,255)
+    textBox.Font = Enum.Font.Gotham
+    textBox.TextSize = 12
+    textBox.Parent = frame
+    local tbCorner = Instance.new("UICorner")
+    tbCorner.CornerRadius = UDim.new(0, 6)
+    tbCorner.Parent = textBox
+
+    local verifyBtn = Instance.new("TextButton")
+    verifyBtn.Size = UDim2.new(0.4, 0, 0, 35)
+    verifyBtn.Position = UDim2.new(0.05, 0, 0, 85)
+    verifyBtn.Text = "Verify"
+    verifyBtn.BackgroundColor3 = Color3.fromRGB(0,130,110)
+    verifyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    verifyBtn.Font = Enum.Font.GothamBold
+    verifyBtn.TextSize = 12
+    verifyBtn.Parent = frame
+    local vCorner = Instance.new("UICorner")
+    vCorner.CornerRadius = UDim.new(0, 6)
+    vCorner.Parent = verifyBtn
+
+    local discordBtn = Instance.new("TextButton")
+    discordBtn.Size = UDim2.new(0.4, 0, 0, 35)
+    discordBtn.Position = UDim2.new(0.55, 0, 0, 85)
+    discordBtn.Text = "Get Key"
+    discordBtn.BackgroundColor3 = Color3.fromRGB(80,70,120)
+    discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    discordBtn.Font = Enum.Font.Gotham
+    discordBtn.TextSize = 12
+    discordBtn.Parent = frame
+    local dCorner = Instance.new("UICorner")
+    dCorner.CornerRadius = UDim.new(0, 6)
+    dCorner.Parent = discordBtn
+
+    verifyBtn.MouseButton1Click:Connect(function()
+        local entered = textBox.Text
+        if entered == "" then
+            notify("Please enter a key")
+            return
+        end
+        local valid = checkKey(entered)
+        if valid then
+            pcall(function()
+                if not isfolder("Nebula") then makefolder("Nebula") end
+                writefile("Nebula/key.txt", entered)
+            end)
+            notify("Key valid! Loading script...")
+            screenGui:Destroy()
+            createFullGUI()
+            RunService.Heartbeat:Connect(onTick)
+        else
+            notify("Invalid key")
+        end
+    end)
+
+    discordBtn.MouseButton1Click:Connect(function()
+        setclipboard("https://discord.gg/YOUR_INVITE") -- CHANGE TO YOUR DISCORD
+        notify("Discord invite copied!")
+    end)
 end
 
 -- === MAIN ===
-local function main()
+local function start()
     repeat wait() until LocalPlayer.Character
     notify("Character found")
 
-    -- Check for saved key
     local savedKey = nil
     pcall(function()
         if isfolder and isfile and isfolder("Nebula") and isfile("Nebula/key.txt") then
@@ -557,21 +721,20 @@ local function main()
     end)
 
     if savedKey then
-        local valid, _ = checkKey(savedKey)
+        local valid = checkKey(savedKey)
         if valid then
-            createFullUI()
+            createFullGUI()
             RunService.Heartbeat:Connect(onTick)
             notify("Loaded with saved key")
             return
         end
     end
 
-    startKeySystem()
+    showKeyEntry()
 end
 
-spawn(main)
+spawn(start)
 
--- === FLIGHT KEYBIND ===
 UserInputService.InputBegan:Connect(function(i, gp)
     if gp then return end
     if i.KeyCode == Enum.KeyCode.F then
