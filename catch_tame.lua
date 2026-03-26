@@ -1,6 +1,6 @@
 --[[
-  NEBULA – RED BOX VERSION (KNOWN WORKING)
-  All features included. If this works, we'll improve the GUI.
+  NEBULA – DEBUG BUILD
+  Red box GUI + all features + error reporting
 ]]
 
 local Players = game:GetService("Players")
@@ -10,12 +10,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
+local KEY_LIST_URL = "https://raw.githubusercontent.com/N0icej/neora_catchtame/main/keys.txt"
+
 local function notify(msg)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Nebula",
             Text = msg,
-            Duration = 2
+            Duration = 3
         })
     end)
     print("[Nebula] " .. msg)
@@ -44,7 +46,7 @@ local State = {
     ESPObjects = {}
 }
 
--- === CACHE & SCAN (same as before) ===
+-- === CACHE & SCAN (performance) ===
 local rootPartCache, humanoidCache, lastCacheRefresh = nil, nil, 0
 local function getRootPart()
     local now = tick()
@@ -153,12 +155,14 @@ local function fireRemote(pattern, ...)
 end
 
 local function catch(creature)
-    if not creature then return end
-    fireRemote("catch", creature) or fireRemote("capture", creature) or fireRemote("throw", creature)
+    if not creature then return false end
+    local success = false
+    success = fireRemote("catch", creature) or fireRemote("capture", creature) or fireRemote("throw", creature)
     local cd = creature:FindFirstChildWhichIsA("ClickDetector")
-    if cd then pcall(cd.FireClick, cd) end
+    if cd then pcall(cd.FireClick, cd); success = true end
     local prompt = creature:FindFirstChildWhichIsA("ProximityPrompt")
-    if prompt then pcall(prompt.InputHold, prompt) end
+    if prompt then pcall(prompt.InputHold, prompt); success = true end
+    return success
 end
 
 local function getTamingItem()
@@ -166,43 +170,50 @@ local function getTamingItem()
     local char = LocalPlayer.Character
     local taming = {"Bone","Candy","Meat","Berry","Apple","Fish","Egg","Milk","Carrot","Wheat"}
     local function check(cont)
-        if not cont then return end
+        if not cont then return nil end
         for _, it in ipairs(cont:GetChildren()) do
             if it:IsA("Tool") then
                 for _, n in ipairs(taming) do if it.Name:find(n) then return it end end
             end
         end
+        return nil
     end
     return check(backpack) or check(char)
 end
 
 local function tame(creature, tool)
-    if not creature or not tool then return end
+    if not creature or not tool then return false end
     local orig = tool.Parent
     tool.Parent = LocalPlayer.Character
     wait(0.2)
-    fireRemote("tame", creature, tool) or fireRemote("feed", creature, tool) or fireRemote("train", creature)
+    local success = fireRemote("tame", creature, tool) or fireRemote("feed", creature, tool) or fireRemote("train", creature)
     pcall(tool.Activate, tool)
     local prompt = creature:FindFirstChildWhichIsA("ProximityPrompt")
-    if prompt then pcall(prompt.InputHold, prompt) end
+    if prompt then pcall(prompt.InputHold, prompt); success = true end
     wait(1)
     tool.Parent = orig
+    return success
 end
 
 local function farm(res)
-    if not res then return end
-    fireRemote("harvest", res) or fireRemote("collect", res) or fireRemote("gather", res)
+    if not res then return false end
+    local success = fireRemote("harvest", res) or fireRemote("collect", res) or fireRemote("gather", res)
     local cd = res:FindFirstChildWhichIsA("ClickDetector")
-    if cd then pcall(cd.FireClick, cd) end
+    if cd then pcall(cd.FireClick, cd); success = true end
     local prompt = res:FindFirstChildWhichIsA("ProximityPrompt")
-    if prompt then pcall(prompt.InputHold, prompt) end
+    if prompt then pcall(prompt.InputHold, prompt); success = true end
+    return success
 end
 
 local function collectCash(cashItem)
-    if not cashItem then return end
-    fireRemote("collect", cashItem) or fireRemote("pickup", cashItem) or fireRemote("claim", cashItem)
+    if not cashItem then return false end
+    local success = fireRemote("collect", cashItem) or fireRemote("pickup", cashItem) or fireRemote("claim", cashItem)
     local root = getRootPart()
-    if root and cashItem:IsA("BasePart") then cashItem.CFrame = root.CFrame + Vector3.new(0,3,0) end
+    if root and cashItem:IsA("BasePart") then
+        cashItem.CFrame = root.CFrame + Vector3.new(0,3,0)
+        success = true
+    end
+    return success
 end
 
 -- === FLY ===
@@ -211,7 +222,7 @@ local vel, gyro
 local function toggleFly()
     local hum = getHumanoid()
     local root = getRootPart()
-    if not hum or not root then return end
+    if not hum or not root then return
     if not flying then
         flying = true
         hum.PlatformStand = true
@@ -320,7 +331,7 @@ local function updateESP()
     end
 end
 
--- === MAIN LOOP ===
+-- === MAIN LOOP (auto actions) ===
 local last = {catch=0, tame=0, farm=0, cash=0, claim=0, quest=0, sell=0, buy=0, hatch=0, train=0, esp=0}
 local function onTick()
     local now = tick()
@@ -407,8 +418,18 @@ local function onTick()
     end
 end
 
--- === GUI (Red Box with All Buttons) ===
-local function createRedBoxGUI()
+-- === KEY SYSTEM ===
+local function checkKey(key)
+    local success, data = pcall(game.HttpGet, game, KEY_LIST_URL)
+    if not success or not data then return false end
+    for line in data:gmatch("[^\r\n]+") do
+        if line == key then return true end
+    end
+    return false
+end
+
+-- === GUI (Red Box with all buttons + error reporting) ===
+local function createFullGUI()
     notify("Creating GUI...")
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "Nebula"
@@ -416,9 +437,9 @@ local function createRedBoxGUI()
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 320, 0, 500)
-    main.Position = UDim2.new(0.5, -160, 0.5, -250)
-    main.BackgroundColor3 = Color3.fromRGB(200, 50, 50)  -- red for visibility
+    main.Size = UDim2.new(0, 300, 0, 520)
+    main.Position = UDim2.new(0.5, -150, 0.5, -260)
+    main.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- visible red
     main.Parent = screenGui
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
@@ -505,48 +526,72 @@ local function createRedBoxGUI()
         addButton(text, Color3.fromRGB(80,80,100), callback)
     end
 
-    -- Build UI
-    addToggle("👁️ ESP (Wallhack)", "ESP")
-    addToggle("🎣 Auto Catch", "AutoCatch")
-    addToggle("🍖 Auto Tame", "AutoTame")
-    addToggle("🌾 Auto Farm", "AutoFarm")
-    addToggle("💰 Auto Cash", "AutoCash")
-    addToggle("🎁 Auto Claim", "AutoClaim")
-    addToggle("📜 Auto Quest", "AutoQuest")
-    addToggle("💸 Auto Sell", "AutoSell")
-    addToggle("🛒 Auto Buy", "AutoBuy")
-    addToggle("🥚 Auto Hatch", "AutoHatch")
-    addToggle("📈 Auto Train", "AutoTrain")
-    addToggle("🕊️ Fly Mode (F)", "Fly")
+    -- Add all buttons
+    addToggle("ESP (Wallhack)", "ESP")
+    addToggle("Auto Catch", "AutoCatch")
+    addToggle("Auto Tame", "AutoTame")
+    addToggle("Auto Farm", "AutoFarm")
+    addToggle("Auto Cash", "AutoCash")
+    addToggle("Auto Claim", "AutoClaim")
+    addToggle("Auto Quest", "AutoQuest")
+    addToggle("Auto Sell", "AutoSell")
+    addToggle("Auto Buy", "AutoBuy")
+    addToggle("Auto Hatch", "AutoHatch")
+    addToggle("Auto Train", "AutoTrain")
+    addToggle("Fly Mode (F)", "Fly")
 
-    addIncrement("🏃 Walk Speed", "Speed", 16, 200, 5)
-    addIncrement("🦘 Jump Power", "JumpPower", 50, 200, 10)
-    addIncrement("🎯 Catch Range", "CatchRange", 5, 50, 5)
-    addIncrement("🍖 Tame Range", "TameRange", 5, 45, 5)
-    addIncrement("🌾 Farm Range", "FarmRange", 5, 45, 5)
-    addIncrement("💰 Cash Range", "CashRange", 5, 45, 5)
+    addIncrement("Speed", "Speed", 16, 200, 5)
+    addIncrement("Jump", "JumpPower", 50, 200, 10)
+    addIncrement("Catch Range", "CatchRange", 5, 50, 5)
+    addIncrement("Tame Range", "TameRange", 5, 45, 5)
+    addIncrement("Farm Range", "FarmRange", 5, 45, 5)
+    addIncrement("Cash Range", "CashRange", 5, 45, 5)
 
+    -- Action buttons with error reporting
     addAction("🐾 Teleport to Creature", function()
-        local c, _ = nearestCreature()
-        if c and c:FindFirstChild("HumanoidRootPart") then teleport(c.HumanoidRootPart) end
+        local c, d = nearestCreature()
+        if c then
+            local success, err = pcall(function() teleport(c.HumanoidRootPart) end)
+            if success then notify("Teleported to creature") else notify("Teleport failed: " .. tostring(err)) end
+        else
+            notify("No creature nearby")
+        end
     end)
     addAction("🏆 Teleport to Best Pet", function()
         local p = bestPet()
-        if p and p:FindFirstChild("HumanoidRootPart") then teleport(p.HumanoidRootPart) end
+        if p then
+            local success, err = pcall(function() teleport(p.HumanoidRootPart) end)
+            if success then notify("Teleported to best pet") else notify("Teleport failed: " .. tostring(err)) end
+        else
+            notify("No pets found")
+        end
     end)
     addAction("💰 Teleport to Cash", function()
         local c, _ = nearestCash()
         if c then
             local part = c:IsA("BasePart") and c or c:FindFirstChildWhichIsA("BasePart")
-            if part then teleport(part) end
+            if part then
+                local success, err = pcall(function() teleport(part) end)
+                if success then notify("Teleported to cash") else notify("Teleport failed: " .. tostring(err)) end
+            else
+                notify("Cash has no part")
+            end
+        else
+            notify("No cash nearby")
         end
     end)
     addAction("🏠 Teleport to Spawn", function()
         local spawn = Workspace:FindFirstChild("SpawnLocation")
-        if spawn then teleport(spawn) end
+        if spawn then
+            local success, err = pcall(function() teleport(spawn) end)
+            if success then notify("Teleported to spawn") else notify("Teleport failed: " .. tostring(err)) end
+        else
+            notify("No spawn point found")
+        end
     end)
     addAction("🔄 Rejoin Game", function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+        local success, err = pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
+        if success then notify("Rejoining...") else notify("Rejoin failed: " .. tostring(err)) end
     end)
 
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -572,19 +617,10 @@ local function createRedBoxGUI()
         if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
     end)
 
-    notify("GUI ready. Press F for flight.")
+    notify("GUI ready. Click buttons to test. Press F for flight.")
 end
 
--- === KEY SYSTEM ===
-local function checkKey(key)
-    local success, data = pcall(game.HttpGet, game, "https://raw.githubusercontent.com/N0icej/neora_catchtame/main/keys.txt")
-    if not success or not data then return false end
-    for line in data:gmatch("[^\r\n]+") do
-        if line == key then return true end
-    end
-    return false
-end
-
+-- === KEY ENTRY WINDOW ===
 local function showKeyEntry()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NebulaKey"
@@ -662,7 +698,7 @@ local function showKeyEntry()
             end)
             notify("Key valid! Loading script...")
             screenGui:Destroy()
-            createRedBoxGUI()
+            createFullGUI()
             RunService.Heartbeat:Connect(onTick)
         else
             notify("Invalid key")
@@ -690,7 +726,7 @@ local function start()
     if savedKey then
         local valid = checkKey(savedKey)
         if valid then
-            createRedBoxGUI()
+            createFullGUI()
             RunService.Heartbeat:Connect(onTick)
             notify("Loaded with saved key. Press F for flight.")
             return
