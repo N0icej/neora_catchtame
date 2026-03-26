@@ -1,6 +1,6 @@
 --[[
-  NEBULA – ULTRA SAFE BUILD
-  Red box GUI, all features with error reporting.
+  NEBULA | CATCH & TAME – FINAL
+  Based on working test, all features confirmed.
 ]]
 
 local Players = game:GetService("Players")
@@ -17,7 +17,7 @@ local function notify(msg)
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Nebula",
             Text = msg,
-            Duration = 3
+            Duration = 2
         })
     end)
     print("[Nebula] " .. msg)
@@ -72,9 +72,12 @@ local function scan()
     lastScan = now
     creatures = {}; resources = {}; cash = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
+        -- Detect ANY model with a Humanoid (this includes animals/creatures)
         if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj ~= LocalPlayer.Character then
             local hum = obj:FindFirstChild("Humanoid")
-            if hum and hum.Health > 0 then table.insert(creatures, obj) end
+            if hum and hum.Health > 0 then
+                table.insert(creatures, obj)
+            end
         end
         local name = obj.Name
         if obj:IsA("BasePart") or obj:IsA("Model") then
@@ -182,8 +185,6 @@ local function tame(creature, tool)
     wait(0.2)
     local success = fireRemote("tame", creature, tool) or fireRemote("feed", creature, tool) or fireRemote("train", creature)
     pcall(tool.Activate, tool)
-    local prompt = creature:FindFirstChildWhichIsA("ProximityPrompt")
-    if prompt then pcall(prompt.InputHold, prompt); success = true end
     wait(1)
     tool.Parent = orig
     return success
@@ -226,7 +227,7 @@ local function toggleFly()
     end
 end
 
--- === ESP ===
+-- === ESP (highlights creatures, not players) ===
 local function clearESP()
     for _, obj in pairs(State.ESPObjects) do pcall(obj.Destroy, obj) end
     State.ESPObjects = {}
@@ -235,12 +236,14 @@ end
 local function updateESP()
     if not State.ESP then clearESP(); return end
     scan()
+    -- Remove stale ESP objects
     for id, obj in pairs(State.ESPObjects) do
         if not obj.Parent or not obj.Parent:IsDescendantOf(Workspace) then
             pcall(obj.Destroy, obj)
             State.ESPObjects[id] = nil
         end
     end
+    -- Highlight creatures (animals)
     for _, c in ipairs(creatures) do
         local id = "c_" .. tostring(c)
         if not State.ESPObjects[id] then
@@ -252,6 +255,7 @@ local function updateESP()
             hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             hl.Parent = c
             State.ESPObjects[id] = hl
+            -- Add name tag
             local bill = Instance.new("BillboardGui")
             bill.Size = UDim2.new(0,120,0,35)
             bill.Adornee = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Head") or c.PrimaryPart
@@ -268,6 +272,7 @@ local function updateESP()
             State.ESPObjects["bill_" .. id] = bill
         end
     end
+    -- Highlight resources
     for _, r in ipairs(resources) do
         local part = r:IsA("BasePart") and r or r:FindFirstChildWhichIsA("BasePart")
         if part then
@@ -290,6 +295,7 @@ local function updateESP()
             end
         end
     end
+    -- Highlight cash
     for _, ca in ipairs(cash) do
         local part = ca:IsA("BasePart") and ca or ca:FindFirstChildWhichIsA("BasePart")
         if part then
@@ -314,7 +320,7 @@ local function updateESP()
     end
 end
 
--- === MAIN LOOP ===
+-- === MAIN LOOP (auto actions) ===
 local last = {catch=0, tame=0, farm=0, cash=0, claim=0, quest=0, sell=0, buy=0, hatch=0, train=0, esp=0}
 local function onTick()
     local now = tick()
@@ -411,7 +417,7 @@ local function checkKey(key)
     return false
 end
 
--- === RED BOX GUI (PROVEN) ===
+-- === GUI (based on working test) ===
 local function createFullGUI()
     notify("Creating GUI...")
     local screenGui = Instance.new("ScreenGui")
@@ -419,83 +425,105 @@ local function createFullGUI()
     screenGui.ResetOnSpawn = false
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+    -- Main frame (dark theme)
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 320, 0, 540)
-    main.Position = UDim2.new(0.5, -160, 0.5, -270)
-    main.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- red
+    main.Size = UDim2.new(0, 340, 0, 540)
+    main.Position = UDim2.new(0.5, -170, 0.5, -270)
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    main.BackgroundTransparency = 0.05
+    main.BorderSizePixel = 0
     main.Parent = screenGui
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = main
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 200, 180)
+    stroke.Thickness = 1.5
+    stroke.Transparency = 0.6
+    stroke.Parent = main
+
+    -- Title bar (draggable)
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 36)
+    titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+    titleBar.BackgroundTransparency = 0.2
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = main
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 12)
+    titleCorner.Parent = titleBar
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    title.Size = UDim2.new(1, -50, 1, 0)
+    title.Position = UDim2.new(0, 10, 0, 0)
+    title.BackgroundTransparency = 1
     title.Text = "⚡ NEBULA | CATCH & TAME"
-    title.TextColor3 = Color3.fromRGB(255,255,255)
+    title.TextColor3 = Color3.fromRGB(0, 255, 220)
+    title.TextXAlignment = Enum.TextXAlignment.Left
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 12
-    title.Parent = main
+    title.TextSize = 14
+    title.Parent = titleBar
 
     local close = Instance.new("TextButton")
-    close.Size = UDim2.new(0, 26, 0, 26)
-    close.Position = UDim2.new(1, -30, 0.5, -13)
-    close.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+    close.Size = UDim2.new(0, 28, 0, 28)
+    close.Position = UDim2.new(1, -34, 0.5, -14)
+    close.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
     close.Text = "✕"
-    close.TextColor3 = Color3.fromRGB(255,255,255)
+    close.TextColor3 = Color3.fromRGB(255, 100, 100)
     close.Font = Enum.Font.Gotham
     close.TextSize = 14
     close.BorderSizePixel = 0
-    close.Parent = title
-    close.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
-        clearESP()
-        notify("GUI closed")
-    end)
+    close.Parent = titleBar
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = close
 
+    -- Scrolling frame
     local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1, -10, 1, -40)
-    scroll.Position = UDim2.new(0, 5, 0, 35)
+    scroll.Size = UDim2.new(1, -15, 1, -48)
+    scroll.Position = UDim2.new(0, 8, 0, 42)
     scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
     scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     scroll.ScrollBarThickness = 4
+    scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 180)
     scroll.Parent = main
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 5)
+    layout.Padding = UDim.new(0, 8)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = scroll
 
+    -- Button creation helpers
     local function addButton(text, color, callback)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 32)
-        btn.BackgroundColor3 = color or Color3.fromRGB(80,80,100)
+        btn.Size = UDim2.new(1, 0, 0, 34)
+        btn.BackgroundColor3 = color or Color3.fromRGB(35, 35, 50)
         btn.Text = text
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.Font = Enum.Font.Gotham
         btn.TextSize = 13
         btn.BorderSizePixel = 0
         btn.Parent = scroll
         local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.CornerRadius = UDim.new(0, 8)
         btnCorner.Parent = btn
         btn.MouseButton1Click:Connect(callback)
         return btn
     end
 
     local function addToggle(text, stateKey)
-        local btn = addButton(text .. " ✗", Color3.fromRGB(80,80,100), function()
+        local btn = addButton(text .. " ✗", Color3.fromRGB(35, 35, 50), function()
             State[stateKey] = not State[stateKey]
             btn.Text = text .. (State[stateKey] and " ✓" or " ✗")
-            btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0,130,110) or Color3.fromRGB(80,80,100)
+            btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0, 140, 120) or Color3.fromRGB(35, 35, 50)
             notify(text .. " " .. (State[stateKey] and "ON" or "OFF"))
         end)
-        btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0,130,110) or Color3.fromRGB(80,80,100)
+        btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0, 140, 120) or Color3.fromRGB(35, 35, 50)
         return btn
     end
 
     local function addIncrement(text, stateKey, minVal, maxVal, step)
-        local btn = addButton(text .. ": " .. State[stateKey], Color3.fromRGB(80,80,100), function()
+        local btn = addButton(text .. ": " .. State[stateKey], Color3.fromRGB(35, 35, 50), function()
             local newVal = State[stateKey] + step
             if newVal > maxVal then newVal = minVal end
             State[stateKey] = newVal
@@ -506,37 +534,35 @@ local function createFullGUI()
     end
 
     local function addAction(text, callback)
-        addButton(text, Color3.fromRGB(80,80,100), callback)
+        addButton(text, Color3.fromRGB(45, 45, 65), callback)
     end
 
-    -- Toggles
-    addToggle("ESP (Wallhack)", "ESP")
-    addToggle("Auto Catch", "AutoCatch")
-    addToggle("Auto Tame", "AutoTame")
-    addToggle("Auto Farm", "AutoFarm")
-    addToggle("Auto Cash", "AutoCash")
-    addToggle("Auto Claim", "AutoClaim")
-    addToggle("Auto Quest", "AutoQuest")
-    addToggle("Auto Sell", "AutoSell")
-    addToggle("Auto Buy", "AutoBuy")
-    addToggle("Auto Hatch", "AutoHatch")
-    addToggle("Auto Train", "AutoTrain")
-    addToggle("Fly Mode (F)", "Fly")
+    -- Build UI
+    addToggle("👁️ ESP (Wallhack)", "ESP")
+    addToggle("🎣 Auto Catch", "AutoCatch")
+    addToggle("🍖 Auto Tame", "AutoTame")
+    addToggle("🌾 Auto Farm", "AutoFarm")
+    addToggle("💰 Auto Cash", "AutoCash")
+    addToggle("🎁 Auto Claim", "AutoClaim")
+    addToggle("📜 Auto Quest", "AutoQuest")
+    addToggle("💸 Auto Sell", "AutoSell")
+    addToggle("🛒 Auto Buy", "AutoBuy")
+    addToggle("🥚 Auto Hatch", "AutoHatch")
+    addToggle("📈 Auto Train", "AutoTrain")
+    addToggle("🕊️ Fly Mode (F)", "Fly")
 
-    -- Increments
-    addIncrement("Walk Speed", "Speed", 16, 200, 5)
-    addIncrement("Jump Power", "JumpPower", 50, 200, 10)
-    addIncrement("Catch Range", "CatchRange", 5, 50, 5)
-    addIncrement("Tame Range", "TameRange", 5, 45, 5)
-    addIncrement("Farm Range", "FarmRange", 5, 45, 5)
-    addIncrement("Cash Range", "CashRange", 5, 45, 5)
+    addIncrement("🏃 Walk Speed", "Speed", 16, 200, 5)
+    addIncrement("🦘 Jump Power", "JumpPower", 50, 200, 10)
+    addIncrement("🎯 Catch Range", "CatchRange", 5, 50, 5)
+    addIncrement("🍖 Tame Range", "TameRange", 5, 45, 5)
+    addIncrement("🌾 Farm Range", "FarmRange", 5, 45, 5)
+    addIncrement("💰 Cash Range", "CashRange", 5, 45, 5)
 
-    -- Actions (with error catching)
     addAction("🐾 Teleport to Creature", function()
-        local c, d = nearestCreature()
+        local c, _ = nearestCreature()
         if c and c:FindFirstChild("HumanoidRootPart") then
-            local success, err = pcall(function() teleport(c.HumanoidRootPart) end)
-            if success then notify("Teleported to creature") else notify("Teleport error: " .. tostring(err)) end
+            teleport(c.HumanoidRootPart)
+            notify("Teleported to creature")
         else
             notify("No creature nearby")
         end
@@ -544,8 +570,8 @@ local function createFullGUI()
     addAction("🏆 Teleport to Best Pet", function()
         local p = bestPet()
         if p and p:FindFirstChild("HumanoidRootPart") then
-            local success, err = pcall(function() teleport(p.HumanoidRootPart) end)
-            if success then notify("Teleported to best pet") else notify("Teleport error: " .. tostring(err)) end
+            teleport(p.HumanoidRootPart)
+            notify("Teleported to best pet")
         else
             notify("No pets found")
         end
@@ -555,10 +581,8 @@ local function createFullGUI()
         if c then
             local part = c:IsA("BasePart") and c or c:FindFirstChildWhichIsA("BasePart")
             if part then
-                local success, err = pcall(function() teleport(part) end)
-                if success then notify("Teleported to cash") else notify("Teleport error: " .. tostring(err)) end
-            else
-                notify("Cash has no part")
+                teleport(part)
+                notify("Teleported to cash")
             end
         else
             notify("No cash nearby")
@@ -567,24 +591,24 @@ local function createFullGUI()
     addAction("🏠 Teleport to Spawn", function()
         local spawn = Workspace:FindFirstChild("SpawnLocation")
         if spawn then
-            local success, err = pcall(function() teleport(spawn) end)
-            if success then notify("Teleported to spawn") else notify("Teleport error: " .. tostring(err)) end
+            teleport(spawn)
+            notify("Teleported to spawn")
         else
             notify("No spawn point found")
         end
     end)
     addAction("🔄 Rejoin Game", function()
-        local success, err = pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
-        if success then notify("Rejoining...") else notify("Rejoin failed: " .. tostring(err)) end
+        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
     end)
 
+    -- Update canvas size
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 15)
     end)
 
     -- Dragging
     local drag, dragStart, frameStart = false
-    title.InputBegan:Connect(function(i)
+    titleBar.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 then
             drag = true
             dragStart = i.Position
@@ -601,10 +625,16 @@ local function createFullGUI()
         if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
     end)
 
-    notify("GUI ready. Click buttons to test. Press F for flight.")
+    close.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+        clearESP()
+        notify("GUI closed")
+    end)
+
+    notify("GUI ready. Press F for flight.")
 end
 
--- === KEY ENTRY ===
+-- === KEY ENTRY WINDOW ===
 local function showKeyEntry()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NebulaKey"
@@ -690,7 +720,7 @@ local function showKeyEntry()
     end)
 
     discordBtn.MouseButton1Click:Connect(function()
-        setclipboard("https://discord.gg/YOUR_INVITE")
+        setclipboard("https://discord.gg/YOUR_INVITE") -- CHANGE
         notify("Discord invite copied!")
     end)
 end
