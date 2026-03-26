@@ -1,6 +1,6 @@
 --[[
-  NEBULA | CATCH & TAME – FINAL WORKING VERSION
-  Key system + full features (simple GUI)
+  NEBULA | CATCH & TAME – WORKING VERSION
+  Uses the simple GUI that worked, adds all features as buttons.
 ]]
 
 local Players = game:GetService("Players")
@@ -9,8 +9,6 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
-
-local KEY_LIST_URL = "https://raw.githubusercontent.com/N0icej/neora_catchtame/main/keys.txt"
 
 local function notify(msg)
     pcall(function()
@@ -23,7 +21,7 @@ local function notify(msg)
     print("[Nebula] " .. msg)
 end
 
--- === STATE ===
+-- ========== STATE ==========
 local State = {
     ESP = false,
     AutoCatch = false,
@@ -46,7 +44,7 @@ local State = {
     ESPObjects = {}
 }
 
--- === CACHE & SCAN (performance) ===
+-- ========== CACHE & SCAN (performance) ==========
 local rootPartCache, humanoidCache, lastCacheRefresh = nil, nil, 0
 local function getRootPart()
     local now = tick()
@@ -142,7 +140,7 @@ local function teleport(part)
     if root and part then root.CFrame = part.CFrame + Vector3.new(0,5,0) end
 end
 
--- === REMOTES & ACTIONS ===
+-- ========== REMOTES & ACTIONS ==========
 local function fireRemote(pattern, ...)
     local args = {...}
     for _, r in ipairs(ReplicatedStorage:GetDescendants()) do
@@ -207,7 +205,7 @@ local function collectCash(cashItem)
     if root and cashItem:IsA("BasePart") then cashItem.CFrame = root.CFrame + Vector3.new(0,3,0) end
 end
 
--- === FLY ===
+-- ========== FLY ==========
 local flying = false
 local vel, gyro
 local function toggleFly()
@@ -234,7 +232,7 @@ local function toggleFly()
     end
 end
 
--- === ESP ===
+-- ========== ESP ==========
 local function clearESP()
     for _, obj in pairs(State.ESPObjects) do pcall(obj.Destroy, obj) end
     State.ESPObjects = {}
@@ -322,7 +320,7 @@ local function updateESP()
     end
 end
 
--- === MAIN LOOP ===
+-- ========== MAIN LOOP ==========
 local last = {catch=0, tame=0, farm=0, cash=0, claim=0, quest=0, sell=0, buy=0, hatch=0, train=0, esp=0}
 local function onTick()
     local now = tick()
@@ -409,60 +407,45 @@ local function onTick()
     end
 end
 
--- === KEY CHECK ===
-local function checkKey(key)
-    local success, data = pcall(game.HttpGet, game, KEY_LIST_URL)
-    if not success or not data then return false end
-    for line in data:gmatch("[^\r\n]+") do
-        if line == key then return true end
-    end
-    return false
-end
-
--- === FULL FEATURE GUI (simple, same style as test) ===
-local function createFullGUI()
+-- ========== GUI (Same as Test – Visible Red Frame) ==========
+local function createGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "Nebula"
     screenGui.ResetOnSpawn = false
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 280, 0, 520)
-    main.Position = UDim2.new(0.5, -140, 0.5, -260)
-    main.BackgroundColor3 = Color3.fromRGB(20,22,30)
-    main.BackgroundTransparency = 0.15
-    main.BorderSizePixel = 0
+    main.Size = UDim2.new(0, 300, 0, 500)
+    main.Position = UDim2.new(0.5, -150, 0.5, -250)
+    main.BackgroundColor3 = Color3.fromRGB(200, 50, 50)   -- visible red
     main.Parent = screenGui
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = main
 
-    local title = Instance.new("TextButton")
+    local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 30)
-    title.BackgroundColor3 = Color3.fromRGB(35,35,45)
+    title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     title.Text = "⚡ NEBULA | CATCH & TAME"
-    title.TextColor3 = Color3.fromRGB(0,255,220)
+    title.TextColor3 = Color3.fromRGB(255,255,255)
     title.Font = Enum.Font.GothamBold
     title.TextSize = 12
-    title.BorderSizePixel = 0
     title.Parent = main
-    local tcorner = Instance.new("UICorner")
-    tcorner.CornerRadius = UDim.new(0, 8)
-    tcorner.Parent = title
 
     local close = Instance.new("TextButton")
     close.Size = UDim2.new(0, 26, 0, 26)
     close.Position = UDim2.new(1, -30, 0.5, -13)
-    close.BackgroundColor3 = Color3.fromRGB(45,48,60)
+    close.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
     close.Text = "✕"
-    close.TextColor3 = Color3.fromRGB(255,100,100)
+    close.TextColor3 = Color3.fromRGB(255,255,255)
     close.Font = Enum.Font.Gotham
     close.TextSize = 14
     close.BorderSizePixel = 0
     close.Parent = title
-    local ccorner = Instance.new("UICorner")
-    ccorner.CornerRadius = UDim.new(0, 4)
-    ccorner.Parent = close
+    close.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+        clearESP()
+    end)
 
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1, -10, 1, -40)
@@ -477,32 +460,10 @@ local function createFullGUI()
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = scroll
 
-    local function addToggle(text, stateKey)
+    local function addButton(text, callback)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, 0, 0, 32)
-        btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0,130,110) or Color3.fromRGB(45,45,60)
-        btn.Text = text .. (State[stateKey] and " ✓" or " ✗")
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.Font = Enum.Font.Gotham
-        btn.TextSize = 13
-        btn.BorderSizePixel = 0
-        btn.Parent = scroll
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = btn
-        btn.MouseButton1Click:Connect(function()
-            State[stateKey] = not State[stateKey]
-            btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0,130,110) or Color3.fromRGB(45,45,60)
-            btn.Text = text .. (State[stateKey] and " ✓" or " ✗")
-            notify(text .. " " .. (State[stateKey] and "ON" or "OFF"))
-        end)
-        return btn
-    end
-
-    local function addAction(text, callback)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 32)
-        btn.BackgroundColor3 = Color3.fromRGB(55,55,75)
+        btn.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
         btn.Text = text
         btn.TextColor3 = Color3.fromRGB(255,255,255)
         btn.Font = Enum.Font.Gotham
@@ -516,72 +477,121 @@ local function createFullGUI()
         return btn
     end
 
-    local function addIncrement(text, stateKey, minVal, maxVal, step)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 32)
-        btn.BackgroundColor3 = Color3.fromRGB(45,48,60)
-        btn.Text = text .. ": " .. State[stateKey]
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.Font = Enum.Font.Gotham
-        btn.TextSize = 13
-        btn.BorderSizePixel = 0
-        btn.Parent = scroll
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = btn
-        btn.MouseButton1Click:Connect(function()
-            local newVal = State[stateKey] + step
-            if newVal > maxVal then newVal = minVal end
-            State[stateKey] = newVal
-            btn.Text = text .. ": " .. newVal
-            notify(text .. " set to " .. newVal)
-        end)
-        return btn
-    end
-
-    -- Toggles
-    addToggle("👁️ ESP (Wallhack)", "ESP")
-    addToggle("🎣 Auto Catch", "AutoCatch")
-    addToggle("🍖 Auto Tame", "AutoTame")
-    addToggle("🌾 Auto Farm", "AutoFarm")
-    addToggle("💰 Auto Cash", "AutoCash")
-    addToggle("🎁 Auto Claim", "AutoClaim")
-    addToggle("📜 Auto Quest", "AutoQuest")
-    addToggle("💸 Auto Sell", "AutoSell")
-    addToggle("🛒 Auto Buy", "AutoBuy")
-    addToggle("🥚 Auto Hatch", "AutoHatch")
-    addToggle("📈 Auto Train", "AutoTrain")
-    addToggle("🕊️ Fly Mode (F)", "Fly")
+    -- Toggle buttons
+    addButton("ESP (Wallhack)", function()
+        State.ESP = not State.ESP
+        notify("ESP " .. (State.ESP and "ON" or "OFF"))
+    end)
+    addButton("Auto Catch", function()
+        State.AutoCatch = not State.AutoCatch
+        notify("Auto Catch " .. (State.AutoCatch and "ON" or "OFF"))
+    end)
+    addButton("Auto Tame", function()
+        State.AutoTame = not State.AutoTame
+        notify("Auto Tame " .. (State.AutoTame and "ON" or "OFF"))
+    end)
+    addButton("Auto Farm", function()
+        State.AutoFarm = not State.AutoFarm
+        notify("Auto Farm " .. (State.AutoFarm and "ON" or "OFF"))
+    end)
+    addButton("Auto Cash", function()
+        State.AutoCash = not State.AutoCash
+        notify("Auto Cash " .. (State.AutoCash and "ON" or "OFF"))
+    end)
+    addButton("Auto Claim", function()
+        State.AutoClaim = not State.AutoClaim
+        notify("Auto Claim " .. (State.AutoClaim and "ON" or "OFF"))
+    end)
+    addButton("Auto Quest", function()
+        State.AutoQuest = not State.AutoQuest
+        notify("Auto Quest " .. (State.AutoQuest and "ON" or "OFF"))
+    end)
+    addButton("Auto Sell", function()
+        State.AutoSell = not State.AutoSell
+        notify("Auto Sell " .. (State.AutoSell and "ON" or "OFF"))
+    end)
+    addButton("Auto Buy", function()
+        State.AutoBuy = not State.AutoBuy
+        notify("Auto Buy " .. (State.AutoBuy and "ON" or "OFF"))
+    end)
+    addButton("Auto Hatch", function()
+        State.AutoHatch = not State.AutoHatch
+        notify("Auto Hatch " .. (State.AutoHatch and "ON" or "OFF"))
+    end)
+    addButton("Auto Train", function()
+        State.AutoTrain = not State.AutoTrain
+        notify("Auto Train " .. (State.AutoTrain and "ON" or "OFF"))
+    end)
+    addButton("Fly Mode (F)", function()
+        State.Fly = not State.Fly
+        toggleFly()
+    end)
 
     -- Increment buttons
-    addIncrement("🏃 Walk Speed", "Speed", 16, 200, 5)
-    addIncrement("🦘 Jump Power", "JumpPower", 50, 200, 10)
-    addIncrement("🎯 Catch Range", "CatchRange", 5, 50, 5)
-    addIncrement("🍖 Tame Range", "TameRange", 5, 45, 5)
-    addIncrement("🌾 Farm Range", "FarmRange", 5, 45, 5)
-    addIncrement("💰 Cash Range", "CashRange", 5, 45, 5)
+    local speedBtn = addButton("Speed: " .. State.Speed, nil)
+    speedBtn.MouseButton1Click:Connect(function()
+        State.Speed = State.Speed + 5
+        if State.Speed > 200 then State.Speed = 16 end
+        speedBtn.Text = "Speed: " .. State.Speed
+        notify("Speed set to " .. State.Speed)
+    end)
+    local jumpBtn = addButton("Jump: " .. State.JumpPower, nil)
+    jumpBtn.MouseButton1Click:Connect(function()
+        State.JumpPower = State.JumpPower + 10
+        if State.JumpPower > 200 then State.JumpPower = 50 end
+        jumpBtn.Text = "Jump: " .. State.JumpPower
+        notify("Jump set to " .. State.JumpPower)
+    end)
+    local catchRangeBtn = addButton("Catch Range: " .. State.CatchRange, nil)
+    catchRangeBtn.MouseButton1Click:Connect(function()
+        State.CatchRange = State.CatchRange + 5
+        if State.CatchRange > 50 then State.CatchRange = 5 end
+        catchRangeBtn.Text = "Catch Range: " .. State.CatchRange
+        notify("Catch Range set to " .. State.CatchRange)
+    end)
+    local tameRangeBtn = addButton("Tame Range: " .. State.TameRange, nil)
+    tameRangeBtn.MouseButton1Click:Connect(function()
+        State.TameRange = State.TameRange + 5
+        if State.TameRange > 45 then State.TameRange = 5 end
+        tameRangeBtn.Text = "Tame Range: " .. State.TameRange
+        notify("Tame Range set to " .. State.TameRange)
+    end)
+    local farmRangeBtn = addButton("Farm Range: " .. State.FarmRange, nil)
+    farmRangeBtn.MouseButton1Click:Connect(function()
+        State.FarmRange = State.FarmRange + 5
+        if State.FarmRange > 45 then State.FarmRange = 5 end
+        farmRangeBtn.Text = "Farm Range: " .. State.FarmRange
+        notify("Farm Range set to " .. State.FarmRange)
+    end)
+    local cashRangeBtn = addButton("Cash Range: " .. State.CashRange, nil)
+    cashRangeBtn.MouseButton1Click:Connect(function()
+        State.CashRange = State.CashRange + 5
+        if State.CashRange > 45 then State.CashRange = 5 end
+        cashRangeBtn.Text = "Cash Range: " .. State.CashRange
+        notify("Cash Range set to " .. State.CashRange)
+    end)
 
-    -- Teleport actions
-    addAction("🐾 Teleport to Creature", function()
+    -- Teleport buttons
+    addButton("🐾 To Nearest Creature", function()
         local c, _ = nearestCreature()
         if c and c:FindFirstChild("HumanoidRootPart") then teleport(c.HumanoidRootPart) end
     end)
-    addAction("🏆 Teleport to Best Pet", function()
+    addButton("🏆 To Best Pet", function()
         local p = bestPet()
         if p and p:FindFirstChild("HumanoidRootPart") then teleport(p.HumanoidRootPart) end
     end)
-    addAction("💰 Teleport to Cash", function()
+    addButton("💰 To Nearest Cash", function()
         local c, _ = nearestCash()
         if c then
             local part = c:IsA("BasePart") and c or c:FindFirstChildWhichIsA("BasePart")
             if part then teleport(part) end
         end
     end)
-    addAction("🏠 Teleport to Spawn", function()
+    addButton("🏠 To Spawn", function()
         local spawn = Workspace:FindFirstChild("SpawnLocation")
         if spawn then teleport(spawn) end
     end)
-    addAction("🔄 Rejoin Game", function()
+    addButton("🔄 Rejoin Game", function()
         game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
     end)
 
@@ -608,129 +618,15 @@ local function createFullGUI()
         if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
     end)
 
-    close.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
-        clearESP()
-        notify("GUI closed")
-    end)
-
-    notify("Nebula GUI ready")
+    notify("GUI ready")
 end
 
--- === KEY ENTRY WINDOW ===
-local function showKeyEntry()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "NebulaKey"
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 150)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -75)
-    frame.BackgroundColor3 = Color3.fromRGB(20,22,30)
-    frame.BackgroundTransparency = 0.1
-    frame.Parent = screenGui
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = frame
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.BackgroundColor3 = Color3.fromRGB(35,35,45)
-    title.Text = "Nebula | Key System"
-    title.TextColor3 = Color3.fromRGB(0,255,220)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 12
-    title.Parent = frame
-
-    local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(0.9, 0, 0, 35)
-    textBox.Position = UDim2.new(0.05, 0, 0, 40)
-    textBox.PlaceholderText = "Enter your key"
-    textBox.BackgroundColor3 = Color3.fromRGB(45,48,60)
-    textBox.TextColor3 = Color3.fromRGB(255,255,255)
-    textBox.Font = Enum.Font.Gotham
-    textBox.TextSize = 12
-    textBox.Parent = frame
-    local tbCorner = Instance.new("UICorner")
-    tbCorner.CornerRadius = UDim.new(0, 6)
-    tbCorner.Parent = textBox
-
-    local verifyBtn = Instance.new("TextButton")
-    verifyBtn.Size = UDim2.new(0.4, 0, 0, 35)
-    verifyBtn.Position = UDim2.new(0.05, 0, 0, 85)
-    verifyBtn.Text = "Verify"
-    verifyBtn.BackgroundColor3 = Color3.fromRGB(0,130,110)
-    verifyBtn.TextColor3 = Color3.fromRGB(255,255,255)
-    verifyBtn.Font = Enum.Font.GothamBold
-    verifyBtn.TextSize = 12
-    verifyBtn.Parent = frame
-    local vCorner = Instance.new("UICorner")
-    vCorner.CornerRadius = UDim.new(0, 6)
-    vCorner.Parent = verifyBtn
-
-    local discordBtn = Instance.new("TextButton")
-    discordBtn.Size = UDim2.new(0.4, 0, 0, 35)
-    discordBtn.Position = UDim2.new(0.55, 0, 0, 85)
-    discordBtn.Text = "Get Key"
-    discordBtn.BackgroundColor3 = Color3.fromRGB(80,70,120)
-    discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
-    discordBtn.Font = Enum.Font.Gotham
-    discordBtn.TextSize = 12
-    discordBtn.Parent = frame
-    local dCorner = Instance.new("UICorner")
-    dCorner.CornerRadius = UDim.new(0, 6)
-    dCorner.Parent = discordBtn
-
-    verifyBtn.MouseButton1Click:Connect(function()
-        local entered = textBox.Text
-        if entered == "" then
-            notify("Please enter a key")
-            return
-        end
-        local valid = checkKey(entered)
-        if valid then
-            pcall(function()
-                if not isfolder("Nebula") then makefolder("Nebula") end
-                writefile("Nebula/key.txt", entered)
-            end)
-            notify("Key valid! Loading script...")
-            screenGui:Destroy()
-            createFullGUI()
-            RunService.Heartbeat:Connect(onTick)
-        else
-            notify("Invalid key")
-        end
-    end)
-
-    discordBtn.MouseButton1Click:Connect(function()
-        setclipboard("https://discord.gg/YOUR_INVITE") -- CHANGE TO YOUR DISCORD
-        notify("Discord invite copied!")
-    end)
-end
-
--- === MAIN ===
+-- ========== START ==========
 local function start()
     repeat wait() until LocalPlayer.Character
-    notify("Character found")
-
-    local savedKey = nil
-    pcall(function()
-        if isfolder and isfile and isfolder("Nebula") and isfile("Nebula/key.txt") then
-            savedKey = readfile("Nebula/key.txt")
-        end
-    end)
-
-    if savedKey then
-        local valid = checkKey(savedKey)
-        if valid then
-            createFullGUI()
-            RunService.Heartbeat:Connect(onTick)
-            notify("Loaded with saved key")
-            return
-        end
-    end
-
-    showKeyEntry()
+    createGUI()
+    RunService.Heartbeat:Connect(onTick)
+    notify("Nebula loaded. Press F for flight.")
 end
 
 spawn(start)
