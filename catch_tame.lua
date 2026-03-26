@@ -1,6 +1,6 @@
 --[[
-  NEBULA | CATCH & TAME – FINAL
-  Key system, all features, nice dark GUI.
+  NEBULA – RED BOX VERSION (KNOWN WORKING)
+  All features included. If this works, we'll improve the GUI.
 ]]
 
 local Players = game:GetService("Players")
@@ -9,8 +9,6 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
-
-local KEY_LIST_URL = "https://raw.githubusercontent.com/N0icej/neora_catchtame/main/keys.txt"
 
 local function notify(msg)
     pcall(function()
@@ -46,7 +44,7 @@ local State = {
     ESPObjects = {}
 }
 
--- === CACHE & SCAN (performance) ===
+-- === CACHE & SCAN (same as before) ===
 local rootPartCache, humanoidCache, lastCacheRefresh = nil, nil, 0
 local function getRootPart()
     local now = tick()
@@ -409,18 +407,8 @@ local function onTick()
     end
 end
 
--- === KEY SYSTEM ===
-local function checkKey(key)
-    local success, data = pcall(game.HttpGet, game, KEY_LIST_URL)
-    if not success or not data then return false end
-    for line in data:gmatch("[^\r\n]+") do
-        if line == key then return true end
-    end
-    return false
-end
-
--- === NICE GUI ===
-local function createFullGUI()
+-- === GUI (Red Box with All Buttons) ===
+local function createRedBoxGUI()
     notify("Creating GUI...")
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "Nebula"
@@ -428,100 +416,82 @@ local function createFullGUI()
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 340, 0, 540)
-    main.Position = UDim2.new(0.5, -170, 0.5, -270)
-    main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-    main.BackgroundTransparency = 0.05
-    main.BorderSizePixel = 0
+    main.Size = UDim2.new(0, 320, 0, 500)
+    main.Position = UDim2.new(0.5, -160, 0.5, -250)
+    main.BackgroundColor3 = Color3.fromRGB(200, 50, 50)  -- red for visibility
     main.Parent = screenGui
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = main
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(0, 200, 180)
-    stroke.Thickness = 1.5
-    stroke.Transparency = 0.6
-    stroke.Parent = main
-
-    local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 36)
-    titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
-    titleBar.BackgroundTransparency = 0.2
-    titleBar.BorderSizePixel = 0
-    titleBar.Parent = main
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 12)
-    titleCorner.Parent = titleBar
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -50, 1, 0)
-    title.Position = UDim2.new(0, 10, 0, 0)
-    title.BackgroundTransparency = 1
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     title.Text = "⚡ NEBULA | CATCH & TAME"
-    title.TextColor3 = Color3.fromRGB(0, 255, 220)
-    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.TextColor3 = Color3.fromRGB(255,255,255)
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 14
-    title.Parent = titleBar
+    title.TextSize = 12
+    title.Parent = main
 
     local close = Instance.new("TextButton")
-    close.Size = UDim2.new(0, 28, 0, 28)
-    close.Position = UDim2.new(1, -34, 0.5, -14)
-    close.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    close.Size = UDim2.new(0, 26, 0, 26)
+    close.Position = UDim2.new(1, -30, 0.5, -13)
+    close.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
     close.Text = "✕"
-    close.TextColor3 = Color3.fromRGB(255, 100, 100)
+    close.TextColor3 = Color3.fromRGB(255,255,255)
     close.Font = Enum.Font.Gotham
     close.TextSize = 14
     close.BorderSizePixel = 0
-    close.Parent = titleBar
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 6)
-    closeCorner.Parent = close
+    close.Parent = title
+    close.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+        clearESP()
+        notify("GUI closed")
+    end)
 
     local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1, -15, 1, -48)
-    scroll.Position = UDim2.new(0, 8, 0, 42)
+    scroll.Size = UDim2.new(1, -10, 1, -40)
+    scroll.Position = UDim2.new(0, 5, 0, 35)
     scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
     scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     scroll.ScrollBarThickness = 4
-    scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 180)
     scroll.Parent = main
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 8)
+    layout.Padding = UDim.new(0, 5)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = scroll
 
     local function addButton(text, color, callback)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 34)
-        btn.BackgroundColor3 = color or Color3.fromRGB(35, 35, 50)
+        btn.Size = UDim2.new(1, 0, 0, 32)
+        btn.BackgroundColor3 = color or Color3.fromRGB(80,80,100)
         btn.Text = text
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
         btn.Font = Enum.Font.Gotham
         btn.TextSize = 13
         btn.BorderSizePixel = 0
         btn.Parent = scroll
         local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 8)
+        btnCorner.CornerRadius = UDim.new(0, 6)
         btnCorner.Parent = btn
         btn.MouseButton1Click:Connect(callback)
         return btn
     end
 
     local function addToggle(text, stateKey)
-        local btn = addButton(text .. " ✗", Color3.fromRGB(35, 35, 50), function()
+        local btn = addButton(text .. " ✗", Color3.fromRGB(80,80,100), function()
             State[stateKey] = not State[stateKey]
             btn.Text = text .. (State[stateKey] and " ✓" or " ✗")
-            btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0, 140, 120) or Color3.fromRGB(35, 35, 50)
+            btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0,130,110) or Color3.fromRGB(80,80,100)
             notify(text .. " " .. (State[stateKey] and "ON" or "OFF"))
         end)
-        btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0, 140, 120) or Color3.fromRGB(35, 35, 50)
+        btn.BackgroundColor3 = State[stateKey] and Color3.fromRGB(0,130,110) or Color3.fromRGB(80,80,100)
         return btn
     end
 
     local function addIncrement(text, stateKey, minVal, maxVal, step)
-        local btn = addButton(text .. ": " .. State[stateKey], Color3.fromRGB(35, 35, 50), function()
+        local btn = addButton(text .. ": " .. State[stateKey], Color3.fromRGB(80,80,100), function()
             local newVal = State[stateKey] + step
             if newVal > maxVal then newVal = minVal end
             State[stateKey] = newVal
@@ -532,7 +502,7 @@ local function createFullGUI()
     end
 
     local function addAction(text, callback)
-        addButton(text, Color3.fromRGB(45, 45, 65), callback)
+        addButton(text, Color3.fromRGB(80,80,100), callback)
     end
 
     -- Build UI
@@ -580,12 +550,12 @@ local function createFullGUI()
     end)
 
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 15)
+        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
     end)
 
     -- Dragging
     local drag, dragStart, frameStart = false
-    titleBar.InputBegan:Connect(function(i)
+    title.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 then
             drag = true
             dragStart = i.Position
@@ -602,16 +572,19 @@ local function createFullGUI()
         if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
     end)
 
-    close.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
-        clearESP()
-        notify("GUI closed")
-    end)
-
-    notify("GUI ready. Features active. Press F for flight.")
+    notify("GUI ready. Press F for flight.")
 end
 
--- === KEY ENTRY WINDOW ===
+-- === KEY SYSTEM ===
+local function checkKey(key)
+    local success, data = pcall(game.HttpGet, game, "https://raw.githubusercontent.com/N0icej/neora_catchtame/main/keys.txt")
+    if not success or not data then return false end
+    for line in data:gmatch("[^\r\n]+") do
+        if line == key then return true end
+    end
+    return false
+end
+
 local function showKeyEntry()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NebulaKey"
@@ -689,7 +662,7 @@ local function showKeyEntry()
             end)
             notify("Key valid! Loading script...")
             screenGui:Destroy()
-            createFullGUI()
+            createRedBoxGUI()
             RunService.Heartbeat:Connect(onTick)
         else
             notify("Invalid key")
@@ -697,7 +670,7 @@ local function showKeyEntry()
     end)
 
     discordBtn.MouseButton1Click:Connect(function()
-        setclipboard("https://discord.gg/YOUR_INVITE") -- CHANGE TO YOUR DISCORD
+        setclipboard("https://discord.gg/YOUR_INVITE") -- CHANGE
         notify("Discord invite copied!")
     end)
 end
@@ -717,7 +690,7 @@ local function start()
     if savedKey then
         local valid = checkKey(savedKey)
         if valid then
-            createFullGUI()
+            createRedBoxGUI()
             RunService.Heartbeat:Connect(onTick)
             notify("Loaded with saved key. Press F for flight.")
             return
